@@ -1,11 +1,11 @@
 import _ from 'lodash';
-import AggResponseTabifyTabifyProvider from 'ui/agg_response/tabify/tabify';
-import uiModules from 'ui/modules';
+import { AggResponseTabifyProvider } from 'ui/agg_response/tabify/tabify';
+import { uiModules } from 'ui/modules';
 
 const module = uiModules.get('kibana/health_metric_vis', ['kibana']);
 
-module.controller('KbnHealthMetricVisController', function ($scope, Private) {
-  const tabifyAggResponse = Private(AggResponseTabifyTabifyProvider);
+module.controller('KbnHealthMetricVisController', function ($scope, $element, Private) {
+  const tabifyAggResponse = Private(AggResponseTabifyProvider);
 
   const metrics = $scope.metrics = [];
 
@@ -50,7 +50,7 @@ module.controller('KbnHealthMetricVisController', function ($scope, Private) {
     tableGroups.tables.forEach(function (table) {
       table.columns.forEach(function (column, i) {
         const fieldFormatter = table.aggConfig(column).fieldFormatter();
-        let value = table.rows[0][i];
+        let value = table.rows[0][i].value;
         let formattedValue = isInvalid(value) ? '?' : fieldFormatter(value);
         let color = getColor(value, $scope.vis.params);
         let fontColor = getFontColor(value, $scope.vis.params);
@@ -65,10 +65,15 @@ module.controller('KbnHealthMetricVisController', function ($scope, Private) {
     });
   };
 
-  $scope.$watch('esResponse', function (resp) {
-    if (resp) {
+  $scope.$watchMulti(['esResponse', 'vis.params'], function () {
+    if ($scope.esResponse) {
+      const options = {
+        asAggConfigResults: true
+      };
+
       metrics.length = 0;
-      $scope.processTableGroups(tabifyAggResponse($scope.vis, resp));
+      $scope.processTableGroups(tabifyAggResponse($scope.vis, $scope.esResponse, options));
+      $element.trigger('renderComplete');
     }
   });
 });

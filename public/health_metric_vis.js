@@ -1,26 +1,28 @@
 import 'plugins/health_metric_vis/health_metric_vis.less';
 import 'plugins/health_metric_vis/health_metric_vis_controller';
+import image from './images/icon-number.svg';
 
-import TemplateVisTypeTemplateVisTypeProvider from 'ui/template_vis_type/template_vis_type';
-import VisSchemasProvider from 'ui/vis/schemas';
-import healthMetricVisTemplate from 'plugins/health_metric_vis/health_metric_vis.html';
-import healthMetricVisParamsTemplate from 'plugins/health_metric_vis/health_metric_vis_params.html';
+import { TemplateVisTypeProvider } from 'ui/template_vis_type';
+import { VisVisTypeProvider } from 'ui/vis/vis_type';
+import { VisTypesRegistryProvider } from 'ui/registry/vis_types';
+import { VisSchemasProvider } from 'ui/vis/schemas';
+// register the provider with the visTypes registry so that other know it exists
+VisTypesRegistryProvider.register(HealthMetricVisProvider);
 
-// Register visualisation plugin
-require('ui/registry/vis_types').register(HealthMetricVisProvider);
-
-function HealthMetricVisProvider(Private) {
-  const TemplateVisType = Private(TemplateVisTypeTemplateVisTypeProvider);
+export default function HealthMetricVisProvider(Private) {
+  const VisType = Private(VisVisTypeProvider)
+  const TemplateVisType = Private(TemplateVisTypeProvider);
   const Schemas = Private(VisSchemasProvider);
 
   // return the visType object, which kibana will use to display and configure new
   // Vis object of this type.
   return new TemplateVisType({
     name: 'health-metric',
-    title: 'Health Color Metric',
+    title: 'Health Metric',
+    image,
     description: 'Displays a metric with a color according to the planned state of health.',
-    icon: 'fa-calculator',
-    template: healthMetricVisTemplate,
+    category: VisType.CATEGORY.DATA,
+    template: require('plugins/health_metric_vis/health_metric_vis.html'),
     params: {
       defaults: {
         handleNoResults: true,
@@ -33,8 +35,9 @@ function HealthMetricVisProvider(Private) {
         yellowColor: "#ffa500",
         greenColor: "#6dc066"
       },
-      editor: healthMetricVisParamsTemplate
+      editor: require('plugins/health_metric_vis/health_metric_vis_params.html')
     },
+    implementsRenderComplete: true,
     schemas: new Schemas([
       {
         group: 'metrics',
@@ -42,6 +45,7 @@ function HealthMetricVisProvider(Private) {
         title: 'Metric',
         min: 1,
         max: 1,
+        aggFilter: ['!derivative', '!geo_centroid'],
         defaults: [
           { type: 'count', schema: 'metric' }
         ]
@@ -49,6 +53,3 @@ function HealthMetricVisProvider(Private) {
     ])
   });
 }
-
-// export the provider so that the visType can be required with Private()
-export default HealthMetricVisProvider;
